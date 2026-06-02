@@ -123,3 +123,13 @@ class NetworkFailure extends Failure {
 class CacheFailure extends Failure {
   const CacheFailure({required super.message, super.code});
 }
+
+/// Failure caused by invalid input or parameter validation.
+class ValidationFailure extends Failure {
+  const ValidationFailure({required super.message, super.code});
+}
+
+/// Failure when a requested resource is not found.
+class NotFoundFailure extends Failure {
+  const NotFoundFailure({required super.message, super.code});
+}
