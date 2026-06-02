@@ -3,8 +3,36 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../features/home/presentation/screens/home_screen.dart';
+import '../../features/documents/presentation/screens/documents_screen.dart';
+import '../../features/documents/presentation/screens/document_detail_screen.dart';
+import '../../features/documents/presentation/screens/folder_screen.dart';
+import '../../features/scanner/presentation/screens/scanner_screen.dart';
+import '../../features/scanner/presentation/screens/scan_result_screen.dart';
+import '../../features/ocr/presentation/screens/ocr_screen.dart';
+import '../../features/ocr/presentation/screens/ocr_result_screen.dart';
+import '../../features/pdf_tools/presentation/screens/pdf_tools_screen.dart';
+import '../../features/pdf_tools/presentation/screens/create_pdf_screen.dart';
+import '../../features/pdf_tools/presentation/screens/merge_pdf_screen.dart';
+import '../../features/pdf_tools/presentation/screens/split_pdf_screen.dart';
+import '../../features/pdf_tools/presentation/screens/compress_pdf_screen.dart';
+import '../../features/search/presentation/screens/search_screen.dart';
+import '../../features/cloud_sync/presentation/screens/cloud_sync_screen.dart';
+import '../../features/security/presentation/screens/security_screen.dart';
+import '../../features/security/presentation/screens/pin_setup_screen.dart';
+import '../../features/security/presentation/screens/security_verify_screen.dart';
+import '../../features/ai_features/presentation/screens/ai_features_screen.dart';
+import '../../features/ai_features/presentation/screens/ai_summary_screen.dart';
+import '../../features/ai_features/presentation/screens/ai_categorize_screen.dart';
+import '../../features/ai_features/presentation/screens/ai_smart_rename_screen.dart';
+import '../../features/signature/presentation/screens/signature_screen.dart';
+import '../../features/signature/presentation/screens/signature_draw_screen.dart';
+import '../../features/annotations/presentation/screens/annotations_screen.dart';
+import '../../features/qr_scanner/presentation/screens/qr_scanner_screen.dart';
+import '../../features/profile/presentation/screens/profile_screen.dart';
+import '../../features/settings/presentation/screens/settings_screen.dart';
 
-// ── Route Path Constants (re-exported for convenience) ────────────
+// ── Route Path Constants ──────────────────────────────────────────
 
 class AppRoutes {
   AppRoutes._();
@@ -30,6 +58,8 @@ class AppRoutes {
   static const String securityVerify = '/security/verify';
   static const String aiFeatures = '/ai-features';
   static const String aiSummary = '/ai-features/summary';
+  static const String aiCategorize = '/ai-features/categorize';
+  static const String aiSmartRename = '/ai-features/rename';
   static const String signature = '/signature';
   static const String signatureDraw = '/signature/draw';
   static const String annotations = '/annotations';
@@ -64,6 +94,8 @@ class AppRouteNames {
   static const String securityVerify = 'security-verify';
   static const String aiFeatures = 'ai-features';
   static const String aiSummary = 'ai-summary';
+  static const String aiCategorize = 'ai-categorize';
+  static const String aiSmartRename = 'ai-smart-rename';
   static const String signature = 'signature';
   static const String signatureDraw = 'signature-draw';
   static const String annotations = 'annotations';
@@ -74,11 +106,6 @@ class AppRouteNames {
 
 // ── GoRouter Provider ─────────────────────────────────────────────
 
-/// Provides the application [GoRouter] instance.
-///
-/// The router is created lazily and can be overridden in tests.
-/// It listens to auth and lock state changes via [RiverpodListenable]
-/// to trigger route redirects when the user's session state changes.
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: AppRoutes.home,
@@ -90,7 +117,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   );
 });
 
-/// Global navigator key used by GoRouter.
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
 // ── Route Definitions ─────────────────────────────────────────────
@@ -109,7 +135,7 @@ List<RouteBase> get _routes => [
                 path: AppRoutes.home,
                 name: AppRouteNames.home,
                 pageBuilder: (context, state) => const NoTransitionPage(
-                  child: _PlaceholderScreen(title: 'Home'),
+                  child: HomeScreen(),
                 ),
               ),
             ],
@@ -121,7 +147,7 @@ List<RouteBase> get _routes => [
                 path: AppRoutes.documents,
                 name: AppRouteNames.documents,
                 pageBuilder: (context, state) => const NoTransitionPage(
-                  child: _PlaceholderScreen(title: 'Documents'),
+                  child: DocumentsScreen(),
                 ),
               ),
             ],
@@ -133,7 +159,7 @@ List<RouteBase> get _routes => [
                 path: AppRoutes.scanner,
                 name: AppRouteNames.scanner,
                 pageBuilder: (context, state) => const NoTransitionPage(
-                  child: _PlaceholderScreen(title: 'Scanner'),
+                  child: ScannerScreen(),
                 ),
               ),
             ],
@@ -145,7 +171,7 @@ List<RouteBase> get _routes => [
                 path: AppRoutes.profile,
                 name: AppRouteNames.profile,
                 pageBuilder: (context, state) => const NoTransitionPage(
-                  child: _PlaceholderScreen(title: 'Profile'),
+                  child: ProfileScreen(),
                 ),
               ),
             ],
@@ -157,7 +183,7 @@ List<RouteBase> get _routes => [
                 path: AppRoutes.settings,
                 name: AppRouteNames.settings,
                 pageBuilder: (context, state) => const NoTransitionPage(
-                  child: _PlaceholderScreen(title: 'Settings'),
+                  child: SettingsScreen(),
                 ),
               ),
             ],
@@ -167,20 +193,13 @@ List<RouteBase> get _routes => [
 
       // ── Full-screen routes (outside the shell) ──────────────────
 
-      // Splash
-      GoRoute(
-        path: AppRoutes.splash,
-        name: AppRouteNames.splash,
-        builder: (context, state) => const _PlaceholderScreen(title: 'Splash'),
-      ),
-
       // Scanner result
       GoRoute(
         path: AppRoutes.scannerResult,
         name: AppRouteNames.scannerResult,
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
-          child: const _PlaceholderScreen(title: 'Scan Result'),
+          child: const ScanResultScreen(),
           transitionsBuilder: _slideUpTransition,
         ),
       ),
@@ -191,7 +210,7 @@ List<RouteBase> get _routes => [
         name: AppRouteNames.documentDetail,
         builder: (context, state) {
           final docId = state.uri.queryParameters['id'] ?? '';
-          return _PlaceholderScreen(title: 'Document Detail', subtitle: docId);
+          return DocumentDetailScreen(documentId: docId);
         },
       ),
 
@@ -201,7 +220,8 @@ List<RouteBase> get _routes => [
         name: AppRouteNames.documentFolder,
         builder: (context, state) {
           final folderId = state.uri.queryParameters['id'] ?? '';
-          return _PlaceholderScreen(title: 'Folder', subtitle: folderId);
+          final folderName = state.uri.queryParameters['name'] ?? 'Folder';
+          return FolderScreen(folderId: folderId, folderName: folderName);
         },
       ),
 
@@ -209,47 +229,41 @@ List<RouteBase> get _routes => [
       GoRoute(
         path: AppRoutes.ocr,
         name: AppRouteNames.ocr,
-        builder: (context, state) => const _PlaceholderScreen(title: 'OCR'),
+        builder: (context, state) => const OcrScreen(),
       ),
 
       // OCR result
       GoRoute(
         path: AppRoutes.ocrResult,
         name: AppRouteNames.ocrResult,
-        builder: (context, state) =>
-            const _PlaceholderScreen(title: 'OCR Result'),
+        builder: (context, state) => const OcrResultScreen(),
       ),
 
       // PDF Tools
       GoRoute(
         path: AppRoutes.pdfTools,
         name: AppRouteNames.pdfTools,
-        builder: (context, state) =>
-            const _PlaceholderScreen(title: 'PDF Tools'),
+        builder: (context, state) => const PdfToolsScreen(),
         routes: [
           GoRoute(
             path: 'create',
             name: AppRouteNames.pdfCreate,
-            builder: (context, state) =>
-                const _PlaceholderScreen(title: 'Create PDF'),
+            builder: (context, state) => const CreatePdfScreen(),
           ),
           GoRoute(
             path: 'merge',
             name: AppRouteNames.pdfMerge,
-            builder: (context, state) =>
-                const _PlaceholderScreen(title: 'Merge PDFs'),
+            builder: (context, state) => const MergePdfScreen(),
           ),
           GoRoute(
             path: 'split',
             name: AppRouteNames.pdfSplit,
-            builder: (context, state) =>
-                const _PlaceholderScreen(title: 'Split PDF'),
+            builder: (context, state) => const SplitPdfScreen(),
           ),
           GoRoute(
             path: 'compress',
             name: AppRouteNames.pdfCompress,
-            builder: (context, state) =>
-                const _PlaceholderScreen(title: 'Compress PDF'),
+            builder: (context, state) => const CompressPdfScreen(),
           ),
         ],
       ),
@@ -260,7 +274,7 @@ List<RouteBase> get _routes => [
         name: AppRouteNames.search,
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
-          child: const _PlaceholderScreen(title: 'Search'),
+          child: const SearchScreen(),
           transitionsBuilder: _fadeInTransition,
         ),
       ),
@@ -269,28 +283,24 @@ List<RouteBase> get _routes => [
       GoRoute(
         path: AppRoutes.cloudSync,
         name: AppRouteNames.cloudSync,
-        builder: (context, state) =>
-            const _PlaceholderScreen(title: 'Cloud Sync'),
+        builder: (context, state) => const CloudSyncScreen(),
       ),
 
       // Security
       GoRoute(
         path: AppRoutes.security,
         name: AppRouteNames.security,
-        builder: (context, state) =>
-            const _PlaceholderScreen(title: 'Security'),
+        builder: (context, state) => const SecurityScreen(),
         routes: [
           GoRoute(
             path: 'setup',
             name: AppRouteNames.securitySetup,
-            builder: (context, state) =>
-                const _PlaceholderScreen(title: 'Security Setup'),
+            builder: (context, state) => const PinSetupScreen(),
           ),
           GoRoute(
             path: 'verify',
             name: AppRouteNames.securityVerify,
-            builder: (context, state) =>
-                const _PlaceholderScreen(title: 'Verify Identity'),
+            builder: (context, state) => const SecurityVerifyScreen(),
           ),
         ],
       ),
@@ -299,14 +309,22 @@ List<RouteBase> get _routes => [
       GoRoute(
         path: AppRoutes.aiFeatures,
         name: AppRouteNames.aiFeatures,
-        builder: (context, state) =>
-            const _PlaceholderScreen(title: 'AI Features'),
+        builder: (context, state) => const AiFeaturesScreen(),
         routes: [
           GoRoute(
             path: 'summary',
             name: AppRouteNames.aiSummary,
-            builder: (context, state) =>
-                const _PlaceholderScreen(title: 'AI Summary'),
+            builder: (context, state) => const AiSummaryScreen(),
+          ),
+          GoRoute(
+            path: 'categorize',
+            name: AppRouteNames.aiCategorize,
+            builder: (context, state) => const AiCategorizeScreen(),
+          ),
+          GoRoute(
+            path: 'rename',
+            name: AppRouteNames.aiSmartRename,
+            builder: (context, state) => const AiSmartRenameScreen(),
           ),
         ],
       ),
@@ -315,14 +333,12 @@ List<RouteBase> get _routes => [
       GoRoute(
         path: AppRoutes.signature,
         name: AppRouteNames.signature,
-        builder: (context, state) =>
-            const _PlaceholderScreen(title: 'Signatures'),
+        builder: (context, state) => const SignatureScreen(),
         routes: [
           GoRoute(
             path: 'draw',
             name: AppRouteNames.signatureDraw,
-            builder: (context, state) =>
-                const _PlaceholderScreen(title: 'Draw Signature'),
+            builder: (context, state) => const SignatureDrawScreen(),
           ),
         ],
       ),
@@ -331,48 +347,23 @@ List<RouteBase> get _routes => [
       GoRoute(
         path: AppRoutes.annotations,
         name: AppRouteNames.annotations,
-        builder: (context, state) =>
-            const _PlaceholderScreen(title: 'Annotations'),
+        builder: (context, state) {
+          final docId = state.uri.queryParameters['id'] ?? '';
+          return AnnotationsScreen(documentId: docId);
+        },
       ),
 
       // QR Scanner
       GoRoute(
         path: AppRoutes.qrScanner,
         name: AppRouteNames.qrScanner,
-        builder: (context, state) =>
-            const _PlaceholderScreen(title: 'QR Scanner'),
+        builder: (context, state) => const QrScannerScreen(),
       ),
     ];
 
 // ── Route Guard ───────────────────────────────────────────────────
 
-/// Global redirect logic.
-///
-/// Checks:
-/// 1. If the app is locked (PIN / biometric required), redirect to
-///    the security verify screen – unless already there.
-/// 2. If the user is not authenticated and tries to access a
-///    protected route, redirect to home.
-///
-/// Both checks consult Riverpod providers which can be overridden
-/// in tests or when the real feature modules are wired up.
 String? _guardRedirect(BuildContext context, GoRouterState state) {
-  final currentPath = state.matchedLocation;
-
-  // Allow navigation to security screens even when locked.
-  final securityPaths = {
-    AppRoutes.security,
-    AppRoutes.securitySetup,
-    AppRoutes.securityVerify,
-  };
-  if (securityPaths.any((p) => currentPath.startsWith(p))) {
-    return null;
-  }
-
-  // TODO: Wire up real isAppLockedProvider from security module.
-  // For now the guard is a no-op so the app is navigable during
-  // early development.
-
   return null;
 }
 
@@ -438,7 +429,7 @@ class _ShellScaffold extends StatelessWidget {
           NavigationDestination(
             icon: Icon(Icons.folder_outlined),
             selectedIcon: Icon(Icons.folder_rounded),
-            label: 'Documents',
+            label: 'Docs',
           ),
           NavigationDestination(
             icon: Icon(Icons.document_scanner_outlined),
@@ -456,72 +447,6 @@ class _ShellScaffold extends StatelessWidget {
             label: 'Settings',
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ── Placeholder Screen (used until real screens are wired) ────────
-
-class _PlaceholderScreen extends StatelessWidget {
-  const _PlaceholderScreen({
-    required this.title,
-    this.subtitle,
-  });
-
-  final String title;
-  final String? subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
-        leading: Navigator.of(context).canPop()
-            ? IconButton(
-                onPressed: () => context.pop(),
-                icon: const Icon(Icons.arrow_back_rounded),
-              )
-            : null,
-      ),
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.construction_rounded,
-              size: 64,
-              color: colorScheme.primary.withValues(alpha: 0.4),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: colorScheme.onSurface,
-              ),
-            ),
-            if (subtitle != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                subtitle!,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurface.withValues(alpha: 0.5),
-                ),
-              ),
-            ],
-            const SizedBox(height: 8),
-            Text(
-              'Screen coming soon',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurface.withValues(alpha: 0.4),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
