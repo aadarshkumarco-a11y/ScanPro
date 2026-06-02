@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:file_picker/file_picker.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -218,9 +219,23 @@ class _CompressPdfScreenState extends ConsumerState<CompressPdfScreen> {
     );
   }
 
-  /// Selects a PDF file for compression (placeholder).
-  void _selectPdf(PdfNotifier notifier) {
-    notifier.setCompressPdfPath('/path/to/document.pdf');
+  /// Selects a PDF file for compression using file picker.
+  Future<void> _selectPdf(PdfNotifier notifier) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+      if (result != null && result.files.single.path != null) {
+        notifier.setCompressPdfPath(result.files.single.path!);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error picking PDF: ${e.toString()}')),
+        );
+      }
+    }
   }
 
   /// Compresses the selected PDF.

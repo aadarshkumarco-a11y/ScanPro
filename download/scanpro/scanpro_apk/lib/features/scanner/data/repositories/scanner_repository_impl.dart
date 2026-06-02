@@ -31,8 +31,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
   @override
   Future<Either<Failure, ScannedDocument>> scanDocument() async {
     try {
-      // In production, this would open the camera and capture an image.
-      // For now, we create a placeholder document entry.
+      // This is called when no file path is available; creates a placeholder.
       final scanDir = await ScannerLocalDatasource.getScanDirectory();
       final fileName = ScannerLocalDatasource.generateScanFileName();
       final filePath = '${scanDir.path}/$fileName';
@@ -48,6 +47,56 @@ class ScannerRepositoryImpl implements ScannerRepository {
           ScannedPage(
             id: _uuid.v4(),
             filePath: filePath,
+          ),
+        ],
+      );
+
+      final saved = await _localDatasource.saveDocument(document);
+      return Right(saved.toEntity());
+    } on ScannerException catch (e) {
+      return Left(ScannerFailure(message: e.message, code: e.code));
+    } on CacheException catch (e) {
+      return Left(CacheFailure(message: e.message, code: e.code));
+    } catch (e) {
+      return Left(ScannerFailure(
+        message: 'Unexpected scan error: ${e.toString()}',
+        code: 6002,
+      ));
+    }
+  }
+
+  @override
+  Future<Either<Failure, ScannedDocument>> scanFromFile(String filePath) async {
+    try {
+      final file = File(filePath);
+      if (!await file.exists()) {
+        return Left(NotFoundFailure.file());
+      }
+
+      // Copy the file to the app's scan directory for safekeeping.
+      final scanDir = await ScannerLocalDatasource.getScanDirectory();
+      final fileName = ScannerLocalDatasource.generateScanFileName();
+      final destPath = '${scanDir.path}/$fileName';
+      await file.copy(destPath);
+
+      // Try to get file size.
+      int fileSize = 0;
+      try {
+        fileSize = await file.length();
+      } catch (_) {}
+
+      final now = DateTime.now();
+      final document = ScannedDocument(
+        id: _uuid.v4(),
+        filePath: destPath,
+        createdAt: now,
+        updatedAt: now,
+        name: 'Scan ${now.toIso8601String().substring(0, 19)}',
+        fileSize: fileSize,
+        pages: [
+          ScannedPage(
+            id: _uuid.v4(),
+            filePath: destPath,
           ),
         ],
       );

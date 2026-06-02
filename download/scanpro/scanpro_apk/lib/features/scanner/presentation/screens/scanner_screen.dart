@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/routing/app_router.dart';
@@ -19,6 +20,9 @@ class ScannerScreen extends ConsumerStatefulWidget {
 }
 
 class _ScannerScreenState extends ConsumerState<ScannerScreen> {
+  final ImagePicker _imagePicker = ImagePicker();
+  bool _isPicking = false;
+
   @override
   void initState() {
     super.initState();
@@ -102,7 +106,8 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
           _buildScanOverlay(context, colorScheme),
 
           // ── Document Detection Indicator ───────────────────────────
-          if (scannerState.status == ScannerStatus.scanning)
+          if (scannerState.status == ScannerStatus.scanning ||
+              scannerState.status == ScannerStatus.processing)
             _buildScanningIndicator(context, colorScheme),
 
           // ── Bottom Controls ────────────────────────────────────────
@@ -130,14 +135,12 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
     );
   }
 
-  /// Builds the camera preview area.
+  /// Builds the camera preview area with prompt to capture or pick image.
   Widget _buildCameraPreview(
     BuildContext context,
     ColorScheme colorScheme,
     ScannerState scannerState,
   ) {
-    // In production, this would be a CameraPreview widget.
-    // For now, display a placeholder viewfinder.
     return Container(
       color: const Color(0xFF1A1A2E),
       child: Center(
@@ -151,9 +154,16 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Position document within frame',
+              'Tap capture to scan with camera',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Colors.white.withValues(alpha: 0.5),
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Or tap gallery to import from photos',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.35),
                   ),
             ),
           ],
@@ -289,7 +299,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
               ),
               const SizedBox(width: 12),
               Text(
-                'Detecting edges…',
+                'Processing document\u2026',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w500,
@@ -343,40 +353,80 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
     );
   }
 
-  /// Handles the capture button press.
+  /// Handles the capture button press - opens camera.
   Future<void> _onCapture() async {
-    final notifier = ref.read(scannerProvider.notifier);
-    final state = ref.read(scannerProvider);
+    if (_isPicking) return;
+    _isPicking = true;
 
-    if (state.isBatchMode) {
-      await notifier.batchScan(pageCount: state.batchPageCount);
-    } else {
-      await notifier.scanDocument();
-    }
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
 
-    final newState = ref.read(scannerProvider);
-    if (newState.status == ScannerStatus.success &&
-        newState.currentDocument != null) {
-      if (mounted) {
-        context.go(AppRoutes.scannerResult);
+      if (image != null) {
+        final notifier = ref.read(scannerProvider.notifier);
+
+        if (ref.read(scannerProvider).isBatchMode) {
+          await notifier.batchScan(pageCount: ref.read(scannerProvider).batchPageCount);
+        } else {
+          await notifier.scanWithFile(image.path);
+        }
+
+        final newState = ref.read(scannerProvider);
+        if (newState.status == ScannerStatus.success &&
+            newState.currentDocument != null) {
+          if (mounted) {
+            context.go(AppRoutes.scannerResult);
+          }
+        }
       }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Camera error: ${e.toString()}')),
+        );
+      }
+    } finally {
+      _isPicking = false;
     }
   }
 
-  /// Handles gallery import button press.
+  /// Handles gallery import button press - opens gallery.
   Future<void> _onGalleryImport() async {
-    // In production, this would use photo_manager or image_picker
-    // to select images from the gallery.
-    // For now, just trigger a scan as a placeholder.
-    final notifier = ref.read(scannerProvider.notifier);
-    await notifier.scanDocument();
+    if (_isPicking) return;
+    _isPicking = true;
 
-    final newState = ref.read(scannerProvider);
-    if (newState.status == ScannerStatus.success &&
-        newState.currentDocument != null) {
-      if (mounted) {
-        context.go(AppRoutes.scannerResult);
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        final notifier = ref.read(scannerProvider.notifier);
+        await notifier.scanWithFile(image.path);
+
+        final newState = ref.read(scannerProvider);
+        if (newState.status == ScannerStatus.success &&
+            newState.currentDocument != null) {
+          if (mounted) {
+            context.go(AppRoutes.scannerResult);
+          }
+        }
       }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gallery error: ${e.toString()}')),
+        );
+      }
+    } finally {
+      _isPicking = false;
     }
   }
 }

@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/routing/app_router.dart';
@@ -622,18 +625,45 @@ class _DocumentPickerSheet extends StatelessWidget {
                     icon: Icons.photo_library_rounded,
                     title: 'Import from Gallery',
                     subtitle: 'Select an image from your device',
-                    onTap: () {
-                      // In production, use image_picker/file_picker
-                      onDocumentSelected('gallery', '/path/to/gallery/image.jpg');
+                    onTap: () async {
+                      Navigator.of(context).pop();
+                      try {
+                        final ImagePicker picker = ImagePicker();
+                        final XFile? image = await picker.pickImage(
+                          source: ImageSource.gallery,
+                          maxWidth: 1920,
+                          maxHeight: 1920,
+                          imageQuality: 85,
+                        );
+                        if (image != null) {
+                          onDocumentSelected('gallery', image.path);
+                        }
+                      } catch (e) {
+                        // Silently ignore picker errors
+                      }
                     },
                   ),
                   const SizedBox(height: 8),
                   _PickerOption(
-                    icon: Icons.scanner_rounded,
-                    title: 'Use Scanner',
-                    subtitle: 'Scan a new document now',
-                    onTap: () {
-                      onDocumentSelected('scan', '/path/to/scan/image.jpg');
+                    icon: Icons.camera_alt_rounded,
+                    title: 'Take Photo',
+                    subtitle: 'Use camera to capture document',
+                    onTap: () async {
+                      Navigator.of(context).pop();
+                      try {
+                        final ImagePicker picker = ImagePicker();
+                        final XFile? image = await picker.pickImage(
+                          source: ImageSource.camera,
+                          maxWidth: 1920,
+                          maxHeight: 1920,
+                          imageQuality: 85,
+                        );
+                        if (image != null) {
+                          onDocumentSelected('camera', image.path);
+                        }
+                      } catch (e) {
+                        // Silently ignore picker errors
+                      }
                     },
                   ),
                   const SizedBox(height: 8),

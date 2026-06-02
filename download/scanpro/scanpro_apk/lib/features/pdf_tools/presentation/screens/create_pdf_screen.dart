@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../providers/pdf_provider.dart';
@@ -339,12 +342,21 @@ class _CreatePdfScreenState extends ConsumerState<CreatePdfScreen> {
                 color: AppTheme.primaryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Center(
-                child: Text(
-                  '${index + 1}',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.primaryColor,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.file(
+                  File(imagePath),
+                  fit: BoxFit.cover,
+                  width: 48,
+                  height: 48,
+                  errorBuilder: (_, __, ___) => Center(
+                    child: Text(
+                      '${index + 1}',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.primaryColor,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -388,11 +400,25 @@ class _CreatePdfScreenState extends ConsumerState<CreatePdfScreen> {
     );
   }
 
-  /// Adds images to the list (placeholder for file picker).
-  void _addImages(PdfNotifier notifier) {
-    // In production, use file_picker or image_picker
-    // For now, add placeholder image paths
-    notifier.addImage('/path/to/image_${DateTime.now().millisecondsSinceEpoch}.jpg');
+  /// Adds images to the list from gallery using image_picker.
+  Future<void> _addImages(PdfNotifier notifier) async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final List<XFile> images = await picker.pickMultiImage(
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+      for (final img in images) {
+        notifier.addImage(img.path);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error picking images: ${e.toString()}')),
+        );
+      }
+    }
   }
 
   /// Creates the PDF from selected images.

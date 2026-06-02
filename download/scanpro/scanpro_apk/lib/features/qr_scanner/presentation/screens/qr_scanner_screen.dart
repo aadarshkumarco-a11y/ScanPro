@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 // url_launcher and share_plus removed – using stub implementations
 
 import '../../../../core/extensions/context_extensions.dart';
@@ -170,7 +172,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'Point your camera at a QR code',
+                  'Scan or enter QR code',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: colorScheme.onSurface,
@@ -178,24 +180,67 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'The scanner will automatically detect and decode QR codes',
+                  'Pick an image with QR code or enter manually',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurface.withValues(alpha: 0.5),
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
 
-                // Demo scan button (for testing without camera)
+                // Import from gallery button
                 ElevatedButton.icon(
-                  onPressed: () {
-                    // Simulate a QR scan for demo purposes.
-                    ref
-                        .read(qrScannerProvider.notifier)
-                        .onQrCodeScanned('https://scanpro.app');
+                  onPressed: () async {
+                    try {
+                      final ImagePicker picker = ImagePicker();
+                      final XFile? image = await picker.pickImage(
+                        source: ImageSource.gallery,
+                      );
+                      if (image != null) {
+                        // In production, would decode QR from image
+                        ref
+                            .read(qrScannerProvider.notifier)
+                            .onQrCodeScanned('QR from image: ${image.name}');
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: ${e.toString()}')),
+                        );
+                      }
+                    }
                   },
-                  icon: const Icon(Icons.qr_code_2_rounded),
-                  label: const Text('Demo Scan'),
+                  icon: const Icon(Icons.photo_library_rounded),
+                  label: const Text('Import QR Image'),
+                ),
+                const SizedBox(height: 10),
+
+                // Manual input button
+                OutlinedButton.icon(
+                  onPressed: () => _showManualInputDialog(context),
+                  icon: const Icon(Icons.keyboard_rounded),
+                  label: const Text('Enter QR Code Manually'),
+                ),
+                const SizedBox(height: 10),
+
+                // Paste from clipboard button
+                TextButton.icon(
+                  onPressed: () async {
+                    final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+                    if (clipboardData?.text != null && clipboardData!.text!.isNotEmpty) {
+                      ref
+                          .read(qrScannerProvider.notifier)
+                          .onQrCodeScanned(clipboardData.text!);
+                    } else {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Nothing found in clipboard')),
+                        );
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.content_paste_rounded),
+                  label: const Text('Paste from Clipboard'),
                 ),
               ],
             ),
@@ -376,6 +421,47 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
       case QrDataType.sms:
         return 'SMS';
     }
+  }
+
+  /// Shows a dialog for manual QR code input.
+  void _showManualInputDialog(BuildContext context) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Enter QR Code Content'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: controller,
+              autofocus: true,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                hintText: 'Paste or type QR code content (URL, text, etc.)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final text = controller.text.trim();
+              if (text.isNotEmpty) {
+                ref.read(qrScannerProvider.notifier).onQrCodeScanned(text);
+              }
+              Navigator.of(dialogContext).pop();
+            },
+            child: const Text('Scan'),
+          ),
+        ],
+      ),
+    );
   }
 }
 

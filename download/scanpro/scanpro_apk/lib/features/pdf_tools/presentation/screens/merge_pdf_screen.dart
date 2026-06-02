@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
 
 import '../../../../core/theme/app_theme.dart';
 import '../providers/pdf_provider.dart';
@@ -400,11 +402,28 @@ class _MergePdfScreenState extends ConsumerState<MergePdfScreen> {
     );
   }
 
-  /// Adds a PDF to the merge list (placeholder).
-  void _addPdf(PdfNotifier notifier) {
-    notifier.addPdfForMerge(
-      '/path/to/document_${DateTime.now().millisecondsSinceEpoch}.pdf',
-    );
+  /// Adds PDFs to the merge list using file picker.
+  Future<void> _addPdf(PdfNotifier notifier) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+        allowMultiple: true,
+      );
+      if (result != null) {
+        for (final file in result.files) {
+          if (file.path != null) {
+            notifier.addPdfForMerge(file.path!);
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error picking PDF: ${e.toString()}')),
+        );
+      }
+    }
   }
 
   /// Merges the selected PDFs.

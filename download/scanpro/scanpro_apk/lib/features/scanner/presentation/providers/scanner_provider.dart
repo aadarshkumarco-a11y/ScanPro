@@ -150,6 +150,28 @@ class ScannerNotifier extends StateNotifier<ScannerState> {
     );
   }
 
+  /// Scans a document from an existing file (camera capture or gallery pick).
+  Future<void> scanWithFile(String filePath) async {
+    state = state.copyWith(status: ScannerStatus.scanning);
+
+    final result = await _repository.scanFromFile(filePath);
+
+    result.fold(
+      (failure) {
+        state = state.copyWith(
+          status: ScannerStatus.error,
+          errorMessage: failure.message,
+        );
+      },
+      (document) {
+        state = state.copyWith(
+          status: ScannerStatus.success,
+          currentDocument: document,
+        );
+      },
+    );
+  }
+
   /// Crops the current document image.
   Future<void> cropImage({
     required String filePath,

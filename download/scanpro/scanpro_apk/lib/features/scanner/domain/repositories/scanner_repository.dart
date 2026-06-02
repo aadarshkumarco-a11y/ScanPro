@@ -14,6 +14,13 @@ abstract class ScannerRepository {
   /// if the camera is unavailable or permission is denied.
   Future<Either<Failure, ScannedDocument>> scanDocument();
 
+  /// Creates a scanned document from an existing image file at [filePath].
+  ///
+  /// This is used when importing images from gallery or after camera capture.
+  /// Returns the created [ScannedDocument] on success, or a [ScannerFailure]
+  /// if the file cannot be processed.
+  Future<Either<Failure, ScannedDocument>> scanFromFile(String filePath);
+
   /// Crops the image at [filePath] to the region defined by [cropArea].
   ///
   /// [cropArea] is a list of four normalised doubles [left, top, right, bottom].

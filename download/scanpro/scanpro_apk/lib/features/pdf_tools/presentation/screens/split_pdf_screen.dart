@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:file_picker/file_picker.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../providers/pdf_provider.dart';
@@ -298,10 +299,23 @@ class _SplitPdfScreenState extends ConsumerState<SplitPdfScreen> {
     );
   }
 
-  /// Selects a PDF file (placeholder).
-  void _selectPdf(PdfNotifier notifier) {
-    // In production, use file_picker
-    notifier.setSplitPdfPath('/path/to/document.pdf');
+  /// Selects a PDF file using file picker.
+  Future<void> _selectPdf(PdfNotifier notifier) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+      if (result != null && result.files.single.path != null) {
+        notifier.setSplitPdfPath(result.files.single.path!);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error picking PDF: ${e.toString()}')),
+        );
+      }
+    }
   }
 
   /// Splits the selected PDF.
